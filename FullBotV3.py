@@ -10,6 +10,7 @@ import configparser
 from sklearn.metrics import r2_score
 from sklearn.preprocessing import StandardScaler
 import time
+import matplotlib.dates as mdates
 
 # Get the full path to the config file
 config_path = os.path.join(os.path.dirname(__file__), 'config.ini')
@@ -56,7 +57,7 @@ trades_this_week = 0
 
 while True:
     # Update the end_date and start_date to get the latest data
-    end_date = datetime.now() - timedelta(days=1)
+    end_date = datetime.now() - timedelta(days=3)
     start_date = end_date - timedelta(days=120)
 
     # Fetch the latest stock data
@@ -104,16 +105,58 @@ while True:
     r2 = r2_score(actual_values, predictions)
     print(f'R^2 Score: {r2:.4f}')
 
-    # Prepare the input data for prediction (excluding 'target' column)
-    prediction_data = df[-1:].drop(columns=['target'])
+    # Convert the date format for better visualization
+    date_format = [datetime.strptime(str(d), "%Y%m%d").date() for d in df['timestamp'][-len(predictions):]]
 
-    # Predict the next day of trades
+    # Create a plot
+    fig, ax = plt.subplots(figsize=(10, 6))
+    ax.plot(date_format, actual_values, label='Actual Values', color='blue')
+    ax.plot(date_format, predictions, label='Predictions', color='red')
+
+    # Format the x-axis
+    ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d'))
+    fig.autofmt_xdate()
+
+    # Add labels and title
+    plt.xlabel('Date')
+    plt.ylabel('Stock Price')
+    plt.title(f'{symbol} Stock Price Predictions vs Actual Values')
+    plt.legend()
+
+    # Show the plot
+    plt.show()
+
+   # Prepare the input data for prediction (excluding 'target' column)
+    next_week_dates = [end_date + timedelta(days=i) for i in range(1, 8)]
+    next_week_timestamps = [int(date.strftime('%Y%m%d')) for date in next_week_dates]
+
+    # Create a prediction_data DataFrame with the same column order as the original data
+    prediction_data = pd.concat([df[-(window_size-1):], pd.DataFrame({
+        'timestamp': next_week_timestamps,
+        'close': df['close'].iloc[-1],
+        'trade_count': df['trade_count'].iloc[-1],
+        'volume': df['volume'].iloc[-1],
+        'vwap': df['vwap'].iloc[-1]
+    }, columns=df.drop(columns=['target']).columns)], ignore_index=True)
+
     # Predict the next week of trades
-    next_week_trades = model.predict(df[-prediction_horizon:].drop(columns=['target']))
+    next_week_trades = []
+    for i in range(len(prediction_data) - window_size):
+        window = prediction_data[i:i+window_size]
+        next_week_trade = model.predict(window)
+        next_week_trades.append(next_week_trade[0])
+
+    next_week_trades = np.array(next_week_trades)
+
+
+    
+    print(next_week_trades)
 
     # Find the lowest and highest predicted prices within the next week
     lowest_predicted_price = min(next_week_trades)
     highest_predicted_price = max(next_week_trades)
+
+    print("Lowest Price: " + str(lowest_predicted_price) + "Highest Price: " + str(highest_predicted_price))
 
 
     # Calculate the predicted price change ratio
