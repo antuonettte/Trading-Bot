@@ -35,6 +35,7 @@ for stock in stocks:
 # Create a Pandas DataFrame with the data
 df = pd.concat(data.values(), axis=1, keys=['AAPL', 'MSFT', 'XOM', 'AMD'], names=['Symbol', 'Metrics'])
 
+
 new_columns = [f'{symbol}_{metric}' for symbol, metric in df.columns]
 
 df.columns = new_columns
@@ -56,8 +57,6 @@ df['target'] = df['AAPL_close'].shift(-1)
 
 # Drop the last row since it has a NaN value in the target column
 df.drop(df.tail(1).index, inplace=True)
-
-print(df.index.tolist())
 
 # Convert the timestamp format
 # data['timestamp'] = pd.to_datetime(data['timestamp']).apply(lambda x: x.isoformat())
