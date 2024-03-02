@@ -3,7 +3,7 @@ import json
 import pandas as pd
 
 # Define API endpoint and parameters
-api_key = "d6bcea82d59a4b27a9b38fbbc58e45ce"
+api_key = ""
 symbol = "MSFT"
 interval = "1day"
 output_size = "full"
